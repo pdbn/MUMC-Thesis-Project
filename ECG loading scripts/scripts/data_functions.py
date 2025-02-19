@@ -336,18 +336,21 @@ def load_ecg_data(local_ecg_path: object = None, data_path: object = None, quick
     
 
 def addDamicAdmissionData(data, mostRecentDamicFile):
-    # Load most recent version of DAM-IC and create extre columns to fill in the ECG file
+    # Load most recent version of DAM-IC and create extra columns to fill in the ECG file
     damic = pd.read_csv(mostRecentDamicFile)
     damic.hrStart = pd.to_datetime(damic.hrStart)
     damic.hrStop = pd.to_datetime(damic.hrStop)
+    data["AcquisitionDateTime"] = pd.to_datetime(data["AcquisitionDateTime"])
+
     data["isBeforeIcu"]=0
     data["isAfterIcu"]=0
     data["isDuringIcu"]=0
     data["timeToNextIcu"]=pd.NaT
     data["timeSincePrevIcu"]=pd.NaT
 
-    # Add empty column for unique encounter ID
+    # Add empty column for unique encounter ID, isDuring24Hr
     data["uniqueEncId"] = pd.NA
+    data["isDuring24HrICU"] = 0
 
     #%% Loop over all DAM-IC admissions to check if an ECG was measured before,
     # during or after an ICU stay
@@ -363,6 +366,8 @@ def addDamicAdmissionData(data, mostRecentDamicFile):
         isBefore = thisPat & (data.AcquisitionDateTime < inDateTime)
         isDuring = thisPat & (data.AcquisitionDateTime >= inDateTime) & \
             (data.AcquisitionDateTime <= outDateTime)
+        isDuring24Hr = thisPat & (data.AcquisitionDateTime >= inDateTime) & \
+                       (data.AcquisitionDateTime <= inDateTime + pd.Timedelta(hours=24))
             
         data.loc[isBefore,"isBeforeIcu"]=1
         data.loc[isAfter,"isAfterIcu"]=1
@@ -370,6 +375,7 @@ def addDamicAdmissionData(data, mostRecentDamicFile):
 
         # Set uniqueEncId for rows where isDuring is True
         data.loc[isDuring, "uniqueEncId"] = damic.loc[ind, "uniqueEncId"]
+        data.loc[isDuring24Hr, "isDuring24HrICU"] = 1
 
         # Print update status in console as this can take a while:
         if (np.mod(ind,100) == 0) | (ind==damicHeight):
