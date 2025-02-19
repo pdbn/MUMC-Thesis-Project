@@ -346,8 +346,9 @@ def addDamicAdmissionData(data, mostRecentDamicFile):
     data["timeToNextIcu"]=pd.NaT
     data["timeSincePrevIcu"]=pd.NaT
 
-    # Add empty column for unique encounter ID
+    # Add empty column for unique encounter ID, isDuring24Hr
     data["uniqueEncId"] = pd.NA
+    data["isDuring24Hr"] = pd.NA
 
     #%% Loop over all DAM-IC admissions to check if an ECG was measured before,
     # during or after an ICU stay
@@ -363,6 +364,8 @@ def addDamicAdmissionData(data, mostRecentDamicFile):
         isBefore = thisPat & (data.AcquisitionDateTime < inDateTime)
         isDuring = thisPat & (data.AcquisitionDateTime >= inDateTime) & \
             (data.AcquisitionDateTime <= outDateTime)
+        isDuring24Hr = thisPat & (data.AcquisitionDateTime >= inDateTime) & \
+                       (data.AcquisitionDateTime <= inDateTime + pd.Timedelta(hours=24))
             
         data.loc[isBefore,"isBeforeIcu"]=1
         data.loc[isAfter,"isAfterIcu"]=1
@@ -370,6 +373,7 @@ def addDamicAdmissionData(data, mostRecentDamicFile):
 
         # Set uniqueEncId for rows where isDuring is True
         data.loc[isDuring, "uniqueEncId"] = damic.loc[ind, "uniqueEncId"]
+        data.loc[isDuring24Hr, "isDuring24Hr"] = 1
 
         # Print update status in console as this can take a while:
         if (np.mod(ind,100) == 0) | (ind==damicHeight):
