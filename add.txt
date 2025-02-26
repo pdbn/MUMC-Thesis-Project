@@ -1,0 +1,5 @@
+unique id to separate patients by admission (not by patients themselves)
+
+match them lifetime number = patient number, check if ecg date and time falls within the heart rate start and stop -> if match, note unique encounter id 
+data function line 358 check if ecg before/during/after icu stay. lft (life time) check if same patient 
+acquisition date time > out date time (taken afterwards)
