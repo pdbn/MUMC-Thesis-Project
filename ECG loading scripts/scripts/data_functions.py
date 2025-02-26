@@ -372,10 +372,11 @@ def addDamicAdmissionData(data, mostRecentDamicFile):
         data.loc[isBefore,"isBeforeIcu"]=1
         data.loc[isAfter,"isAfterIcu"]=1
         data.loc[isDuring,"isDuringIcu"]=1
+        data.loc[isDuring24Hr, "isDuring24HrICU"] = 1
 
         # Set uniqueEncId for rows where isDuring is True
         data.loc[isDuring, "uniqueEncId"] = damic.loc[ind, "uniqueEncId"]
-        data.loc[isDuring24Hr, "isDuring24HrICU"] = 1
+
 
         # Print update status in console as this can take a while:
         if (np.mod(ind,100) == 0) | (ind==damicHeight):
