@@ -499,7 +499,7 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
     print(f"Loading ECGs took {(time.time() - t) / 60:.2f} minutes.")
 
     # Extract metadata into a DataFrame
-    df_ecg = pd.DataFrame({
+    df_selected = pd.DataFrame({
         "filename": [key for key in ecg_list],
         "PatientID": [ecg.PatientDemographics.get("PatientID", np.nan) for ecg in ecg_list.values()],
         "PatientAge": [ecg.PatientDemographics.get("PatientAge", np.nan) for ecg in ecg_list.values()],
@@ -542,9 +542,9 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
             ), x_ecg_shape)
 
     if save:
-        df_ecg.to_csv(f"{data_path}/ECG_metadata.csv")
+        df_selected.to_csv(f"{data_path}/ECG_metadata.csv")
 
-    return df_ecg, x_ecg, ecg_list
+    return df_selected, x_ecg, ecg_list
 
 
 
