@@ -488,8 +488,7 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
     for count, filename in enumerate(filenames):
         if not filename.lower().endswith('.xml'):
             continue
-        fullname = os.path.normpath(os.path.join(local_ecg_path, filename))
-
+        fullname = r"{}".format(os.path.join(local_ecg_path, filename)).replace("\\", "/")
         ecg = ECGXMLReader(fullname, augmentLeads=True)
         ecg_list[filename] = ecg
 
