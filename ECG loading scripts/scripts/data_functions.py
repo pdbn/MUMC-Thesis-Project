@@ -542,7 +542,7 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
             ), x_ecg_shape)
 
     if save:
-        df_selected.to_csv(f"{data_path}/ECG_metadata.csv")
+        df_selected.to_csv(f"{data_path}/ECG_selected.csv")
 
     return df_selected, x_ecg, ecg_list
 
