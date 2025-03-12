@@ -534,7 +534,7 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
         if scale:
             scaler = StandardScaler()
 
-        x_ecg_shape = x_ecg.shape  # Determine shape
+            x_ecg_shape = x_ecg.shape  # Determine shape
 
         x_ecg = np.reshape(
             scaler.fit_transform(np.reshape(
