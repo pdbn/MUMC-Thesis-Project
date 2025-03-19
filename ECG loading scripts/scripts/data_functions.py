@@ -484,12 +484,25 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
     # Initiate list to store ECGs
     ecg_list = {}
 
+    # Initialize count to count excluded files
+    excluded_count = 0
+
     t = time.time()
     for count, filename in enumerate(filenames):
         if not filename.lower().endswith('.xml'):
             continue
         fullname = r"{}".format(os.path.join(local_ecg_path, filename)).replace("\\", "/")
         ecg = ECGXMLReader(fullname, augmentLeads=True)
+
+        # Check number of leads, since there are files that exceeds 12 leads
+        num_leads = len(ecg.LeadVoltagesRhythm)
+
+        if num_leads > 12:
+            print(f"Skipping {filename} - {num_leads} leads detected.")
+            excluded_count += 1
+            continue  # Skip files with more than 12 leads
+
+
         ecg_list[filename] = ecg
 
         # Print progress
@@ -497,6 +510,8 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
             print(f"Processed {count}/{len(filenames)} ECG files...")
 
     print(f"Loading ECGs took {(time.time() - t) / 60:.2f} minutes.")
+
+    print(f"Excluded {excluded_count} ECG files due to excess leads.")
 
     # Extract metadata into a DataFrame
     df_selected = pd.DataFrame({
@@ -536,10 +551,12 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
 
             x_ecg_shape = x_ecg.shape  # Determine shape
 
-        x_ecg = np.reshape(
-            scaler.fit_transform(np.reshape(
-                x_ecg, (x_ecg_shape[0] * 2500, 12))
-            ), x_ecg_shape)
+            x_ecg = np.reshape(
+                scaler.fit_transform(np.reshape(
+                    x_ecg, (x_ecg_shape[0] * 2500, 12))
+                ), x_ecg_shape)
+
+        print("Hello")
 
     if save:
         df_selected.to_csv(f"{data_path}/ECG_selected.csv")
