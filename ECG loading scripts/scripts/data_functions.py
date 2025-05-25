@@ -333,7 +333,8 @@ def load_ecg_data(local_ecg_path: object = None, data_path: object = None, quick
             df_ecg.to_csv(f"{data_path}/ECG_metadata.csv")
         
         return df_ecg, x_ecg, ecg_list
-    
+
+
 
 def addDamicAdmissionData(data, mostRecentDamicFile):
     # Load most recent version of DAM-IC and create extra columns to fill in the ECG file
@@ -372,10 +373,11 @@ def addDamicAdmissionData(data, mostRecentDamicFile):
         data.loc[isBefore,"isBeforeIcu"]=1
         data.loc[isAfter,"isAfterIcu"]=1
         data.loc[isDuring,"isDuringIcu"]=1
+        data.loc[isDuring24Hr, "isDuring24HrICU"] = 1
 
         # Set uniqueEncId for rows where isDuring is True
         data.loc[isDuring, "uniqueEncId"] = damic.loc[ind, "uniqueEncId"]
-        data.loc[isDuring24Hr, "isDuring24HrICU"] = 1
+
 
         # Print update status in console as this can take a while:
         if (np.mod(ind,100) == 0) | (ind==damicHeight):
@@ -448,4 +450,119 @@ def addDamicAdmissionData(data, mostRecentDamicFile):
     data['timeToNextIcu_hours'] = data['timeToNextIcu'].apply(convert_to_hours)
     data['timeSincePrevIcu_hours'] = data['timeSincePrevIcu'].apply(convert_to_hours)
             
-    return data   
+    return data
+
+
+def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: object = None, preprocess: bool = True,
+                      scale: bool = False, save: object = False) -> pd.DataFrame:
+    """
+    Loads and prepares ECG waveform data from .XML files for a selected subset of patients.
+
+    Parameters:
+    ----------
+    selected : pd.DataFrame
+        DataFrame containing filenames in the first column to be loaded.
+    local_ecg_path : str
+        Path to the directory containing the ECG .XML files.
+    preprocess : bool, optional
+        Whether to preprocess waveform data (default: True).
+    scale : bool, optional
+        Whether to scale (standardize) waveform data (default: False).
+
+    Returns:
+    -------
+    df_ecg : pd.DataFrame
+        DataFrame containing ECG metadata.
+    x_ecg : np.ndarray
+        Multidimensional numpy array containing waveform data.
+    ecg_list : dict
+        Dictionary containing raw ECG objects.
+    """
+
+    filenames = selected.iloc[:, 0].tolist()  # Extract filenames from the first column
+
+    # Initiate list to store ECGs
+    ecg_list = {}
+
+    # Initialize count to count excluded files
+    excluded_count = 0
+
+    t = time.time()
+    for count, filename in enumerate(filenames):
+        if not filename.lower().endswith('.xml'):
+            continue
+        fullname = r"{}".format(os.path.join(local_ecg_path, filename)).replace("\\", "/")
+        ecg = ECGXMLReader(fullname, augmentLeads=True)
+
+        # Check number of leads, since there are files that exceeds 12 leads
+        num_leads = len(ecg.LeadVoltagesRhythm)
+
+        if num_leads > 12:
+            print(f"Skipping {filename} - {num_leads} leads detected.")
+            excluded_count += 1
+            continue  # Skip files with more than 12 leads
+
+
+        ecg_list[filename] = ecg
+
+        # Print progress
+        if count % max(1, len(filenames) // 10) == 0:
+            print(f"Processed {count}/{len(filenames)} ECG files...")
+
+    print(f"Loading ECGs took {(time.time() - t) / 60:.2f} minutes.")
+
+    print(f"Excluded {excluded_count} ECG files due to excess leads.")
+
+    # Extract metadata into a DataFrame
+    df_selected = pd.DataFrame({
+        "filename": [key for key in ecg_list],
+        "PatientID": [ecg.PatientDemographics.get("PatientID", np.nan) for ecg in ecg_list.values()],
+        "PatientAge": [ecg.PatientDemographics.get("PatientAge", np.nan) for ecg in ecg_list.values()],
+        "Gender": [ecg.PatientDemographics.get("Gender", np.nan) for ecg in ecg_list.values()],
+        "VentricularRate": [ecg.RestingECGMeasurements.get("VentricularRate", np.nan) for ecg in ecg_list.values()],
+        "AtrialRate": [ecg.RestingECGMeasurements.get("AtrialRate", np.nan) for ecg in ecg_list.values()],
+        "PRInterval": [ecg.RestingECGMeasurements.get("PRInterval", np.nan) for ecg in ecg_list.values()],
+        "QRSDuration": [ecg.RestingECGMeasurements.get("QRSDuration", np.nan) for ecg in ecg_list.values()],
+        "QTInterval": [ecg.RestingECGMeasurements.get("QTInterval", np.nan) for ecg in ecg_list.values()],
+        "QTCorrected": [ecg.RestingECGMeasurements.get("QTCorrected", np.nan) for ecg in ecg_list.values()],
+        "PAxis": [ecg.RestingECGMeasurements.get("PAxis", np.nan) for ecg in ecg_list.values()],
+        "RAxis": [ecg.RestingECGMeasurements.get("RAxis", np.nan) for ecg in ecg_list.values()],
+        "TAxis": [ecg.RestingECGMeasurements.get("TAxis", np.nan) for ecg in ecg_list.values()],
+        "QRSCount": [ecg.RestingECGMeasurements.get("QRSCount", np.nan) for ecg in ecg_list.values()],
+        "ECGSampleBase": [ecg.RestingECGMeasurements.get("ECGSampleBase", np.nan) for ecg in ecg_list.values()],
+        "ECGSampleExponent": [ecg.RestingECGMeasurements.get("ECGSampleExponent", np.nan) for ecg in ecg_list.values()],
+        "QTcFrederica": [ecg.RestingECGMeasurements.get("QTcFrederica", np.nan) for ecg in ecg_list.values()],
+        "AcquisitionDateTime": pd.to_datetime([
+            f"{ecg.TestDemographics.get('AcquisitionDate', '')} {ecg.TestDemographics.get('AcquisitionTime', '')}"
+            for ecg in ecg_list.values()], errors='coerce')
+    })
+
+    # Extract waveform data
+    x_ecg = np.array(
+        [np.transpose(np.array(list(ecg.LeadVoltagesRhythm.values()))[:, :2500]) for ecg in ecg_list.values()])
+
+    # Optional preprocessing
+    if preprocess:
+        x_ecg = np.array([preprocess_ecg(i, 500, leads="all_leads", remove_baseline=True) for i in x_ecg])
+
+        # Optional scaling
+        if scale:
+            scaler = StandardScaler()
+
+            x_ecg_shape = x_ecg.shape  # Determine shape
+
+            x_ecg = np.reshape(
+                scaler.fit_transform(np.reshape(
+                    x_ecg, (x_ecg_shape[0] * 2500, 12))
+                ), x_ecg_shape)
+
+        print("Hello")
+
+    if save:
+        df_selected.to_csv(f"{data_path}/ECG_selected.csv")
+
+    return df_selected, x_ecg, ecg_list
+
+
+
+
