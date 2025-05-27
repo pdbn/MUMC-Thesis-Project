@@ -479,41 +479,44 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
         Dictionary containing raw ECG objects.
     """
 
-    filenames = selected.iloc[:, 0].tolist()  # Extract filenames from the first column
-
-    # Initiate list to store ECGs
+    filenames = selected.iloc[:, 0].tolist()
     ecg_list = {}
 
-    # Initialize count to count excluded files
-    excluded_count = 0
+    excluded_lead_count = 0
+    excluded_missing_count = 0
 
     t = time.time()
     for count, filename in enumerate(filenames):
         if not filename.lower().endswith('.xml'):
             continue
+
         fullname = r"{}".format(os.path.join(local_ecg_path, filename)).replace("\\", "/")
         ecg = ECGXMLReader(fullname, augmentLeads=True)
 
-        # Check number of leads, since there are files that exceeds 12 leads
         num_leads = len(ecg.LeadVoltagesRhythm)
-
         if num_leads > 12:
             print(f"Skipping {filename} - {num_leads} leads detected.")
-            excluded_count += 1
-            continue  # Skip files with more than 12 leads
+            excluded_lead_count += 1
+            continue
 
+        # Check for missing required numeric values
+        required_fields = ["VentricularRate", "AtrialRate", "PRInterval", "QRSDuration",
+                           "QTInterval", "QTCorrected", "PAxis", "RAxis", "TAxis"]
+        if any(ecg.RestingECGMeasurements.get(field, np.nan) is None or
+               pd.isna(ecg.RestingECGMeasurements.get(field, np.nan)) for field in required_fields):
+            excluded_missing_count += 1
+            continue
 
         ecg_list[filename] = ecg
 
-        # Print progress
         if count % max(1, len(filenames) // 10) == 0:
             print(f"Processed {count}/{len(filenames)} ECG files...")
 
     print(f"Loading ECGs took {(time.time() - t) / 60:.2f} minutes.")
+    print(f"Excluded {excluded_lead_count} files due to excess leads.")
+    print(f"Excluded {excluded_missing_count} files due to missing numeric ECG values.")
 
-    print(f"Excluded {excluded_count} ECG files due to excess leads.")
-
-    # Extract metadata into a DataFrame
+    # Create metadata DataFrame
     df_selected = pd.DataFrame({
         "filename": [key for key in ecg_list],
         "PatientID": [ecg.PatientDemographics.get("PatientID", np.nan) for ecg in ecg_list.values()],
@@ -537,31 +540,27 @@ def load_selected_ecg(selected: pd.DataFrame, local_ecg_path: str, data_path: ob
             for ecg in ecg_list.values()], errors='coerce')
     })
 
-    # Extract waveform data
+    # Waveform extraction
     x_ecg = np.array(
-        [np.transpose(np.array(list(ecg.LeadVoltagesRhythm.values()))[:, :2500]) for ecg in ecg_list.values()])
+        [np.transpose(np.array(list(ecg.LeadVoltagesRhythm.values()))[:, :2500]) for ecg in ecg_list.values()]
+    )
 
-    # Optional preprocessing
     if preprocess:
         x_ecg = np.array([preprocess_ecg(i, 500, leads="all_leads", remove_baseline=True) for i in x_ecg])
 
-        # Optional scaling
         if scale:
             scaler = StandardScaler()
-
-            x_ecg_shape = x_ecg.shape  # Determine shape
-
+            x_ecg_shape = x_ecg.shape
             x_ecg = np.reshape(
-                scaler.fit_transform(np.reshape(
-                    x_ecg, (x_ecg_shape[0] * 2500, 12))
-                ), x_ecg_shape)
-
-        print("Hello")
+                scaler.fit_transform(np.reshape(x_ecg, (x_ecg_shape[0] * 2500, 12))),
+                x_ecg_shape
+            )
 
     if save:
         df_selected.to_csv(f"{data_path}/ECG_selected.csv")
 
     return df_selected, x_ecg, ecg_list
+
 
 
 
