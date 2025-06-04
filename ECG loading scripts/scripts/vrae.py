@@ -124,24 +124,28 @@ class Decoder(nn.Module):
         nn.init.xavier_uniform_(self.hidden_to_output.weight)
 
     def forward(self, latent):
-        """Converts latent to hidden to output
+        """Converts latent to hidden to output"""
+        batch_size = latent.size(0)  # dynamically get batch size
 
-        :param latent: latent vector
-        :return: outputs consisting of mean and std dev of vector
-        """
         h_state = self.latent_to_hidden(latent)
 
         if isinstance(self.model, nn.LSTM):
-            h_0 = torch.stack([h_state for _ in range(self.hidden_layer_depth)])
-            decoder_output, _ = self.model(self.decoder_inputs, (h_0, self.c_0))
+            h_0 = h_state.unsqueeze(0).repeat(self.hidden_layer_depth, 1, 1)  # [layers, batch, hidden]
+            c_0 = torch.zeros(self.hidden_layer_depth, batch_size, self.hidden_size).type(self.dtype)
+            decoder_inputs = torch.zeros(self.sequence_length, batch_size, 1).type(self.dtype)
+            decoder_output, _ = self.model(decoder_inputs, (h_0, c_0))
+
         elif isinstance(self.model, nn.GRU):
-            h_0 = torch.stack([h_state for _ in range(self.hidden_layer_depth)])
-            decoder_output, _ = self.model(self.decoder_inputs, h_0)
+            h_0 = h_state.unsqueeze(0).repeat(self.hidden_layer_depth, 1, 1)  # [layers, batch, hidden]
+            decoder_inputs = torch.zeros(self.sequence_length, batch_size, 1).type(self.dtype)
+            decoder_output, _ = self.model(decoder_inputs, h_0)
+
         else:
             raise NotImplementedError
 
         out = self.hidden_to_output(decoder_output)
         return out
+
 
 def _assert_no_grad(tensor):
     assert not tensor.requires_grad, \
