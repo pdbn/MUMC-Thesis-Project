@@ -95,56 +95,33 @@ class Decoder(nn.Module):
     :param block: GRU/LSTM - use the same which you've used in the encoder
     :param dtype: Depending on cuda enabled/disabled, create the tensor
     """
-    def __init__(self, sequence_length, batch_size, hidden_size, hidden_layer_depth, latent_length, output_size, dtype, block='LSTM'):
+    def __init__(self, number_of_features, hidden_size, hidden_layer_depth, latent_length, dropout, block = 'LSTM'):
 
-        super(Decoder, self).__init__()
+        super(Encoder, self).__init__()
 
+        self.number_of_features = number_of_features
         self.hidden_size = hidden_size
-        self.batch_size = batch_size
-        self.sequence_length = sequence_length
         self.hidden_layer_depth = hidden_layer_depth
         self.latent_length = latent_length
-        self.output_size = output_size
-        self.dtype = dtype
 
         if block == 'LSTM':
-            self.model = nn.LSTM(1, self.hidden_size, self.hidden_layer_depth)
+            self.model = nn.LSTM(self.number_of_features, self.hidden_size, self.hidden_layer_depth, dropout = dropout)
         elif block == 'GRU':
-            self.model = nn.GRU(1, self.hidden_size, self.hidden_layer_depth)
+            self.model = nn.GRU(self.number_of_features, self.hidden_size, self.hidden_layer_depth, dropout = dropout)
         else:
             raise NotImplementedError
 
-        self.latent_to_hidden = nn.Linear(self.latent_length, self.hidden_size)
-        self.hidden_to_output = nn.Linear(self.hidden_size, self.output_size)
+    def forward(self, x):
+        """Forward propagation of encoder. Given input, outputs the last hidden state of encoder
 
-        self.decoder_inputs = torch.zeros(self.sequence_length, self.batch_size, 1, requires_grad=True).type(self.dtype)
-        self.c_0 = torch.zeros(self.hidden_layer_depth, self.batch_size, self.hidden_size, requires_grad=True).type(self.dtype)
+        :param x: input to the encoder, of shape (sequence_length, batch_size, number_of_features)
+        :return: last hidden state of encoder, of shape (batch_size, hidden_size)
+        """
 
-        nn.init.xavier_uniform_(self.latent_to_hidden.weight)
-        nn.init.xavier_uniform_(self.hidden_to_output.weight)
+        _, (h_end, c_end) = self.model(x)
 
-    def forward(self, latent):
-        """Converts latent to hidden to output"""
-        batch_size = latent.size(0)  # dynamically get batch size
-
-        h_state = self.latent_to_hidden(latent)
-
-        if isinstance(self.model, nn.LSTM):
-            h_0 = h_state.unsqueeze(0).repeat(self.hidden_layer_depth, 1, 1)  # [layers, batch, hidden]
-            c_0 = torch.zeros(self.hidden_layer_depth, batch_size, self.hidden_size).type(self.dtype)
-            decoder_inputs = torch.zeros(self.sequence_length, batch_size, 1).type(self.dtype)
-            decoder_output, _ = self.model(decoder_inputs, (h_0, c_0))
-
-        elif isinstance(self.model, nn.GRU):
-            h_0 = h_state.unsqueeze(0).repeat(self.hidden_layer_depth, 1, 1)  # [layers, batch, hidden]
-            decoder_inputs = torch.zeros(self.sequence_length, batch_size, 1).type(self.dtype)
-            decoder_output, _ = self.model(decoder_inputs, h_0)
-
-        else:
-            raise NotImplementedError
-
-        out = self.hidden_to_output(decoder_output)
-        return out
+        h_end = h_end[-1, :, :]
+        return h_end
 
 
 def _assert_no_grad(tensor):
