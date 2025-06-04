@@ -143,8 +143,6 @@ class Decoder(nn.Module):
         out = self.hidden_to_output(decoder_output)
         return out
 
-
-
 def _assert_no_grad(tensor):
     assert not tensor.requires_grad, \
         "nn criterions don't compute the gradient w.r.t. targets - please " \
@@ -171,7 +169,6 @@ class VRAE(BaseEstimator, nn.Module):
     :param max_grad_norm: The grad-norm to be clipped
     :param dload: Download directory where models are to be dumped
     """
-
     def __init__(self, sequence_length, number_of_features, hidden_size=90, hidden_layer_depth=2, latent_length=20,
                  batch_size=32, learning_rate=0.005, block='LSTM',
                  n_epochs=5, dropout_rate=0., optimizer='Adam', loss='MSELoss',
@@ -179,24 +176,19 @@ class VRAE(BaseEstimator, nn.Module):
 
         super(VRAE, self).__init__()
 
+
         self.dtype = torch.FloatTensor
         self.use_cuda = cuda
 
         if not torch.cuda.is_available() and self.use_cuda:
             self.use_cuda = False
 
-        # Define device. This is helpful because you might train on:
-        #
-        # A CPU if you're on a local laptop.
-        #
-        # A GPU if you're on a machine with CUDA (like Google Colab or a server).
-
-        self.device = torch.device("cuda" if self.use_cuda and torch.cuda.is_available() else "cpu")
 
         if self.use_cuda:
             self.dtype = torch.cuda.FloatTensor
 
-        self.encoder = Encoder(number_of_features=number_of_features,
+
+        self.encoder = Encoder(number_of_features = number_of_features,
                                hidden_size=hidden_size,
                                hidden_layer_depth=hidden_layer_depth,
                                latent_length=latent_length,
@@ -207,7 +199,7 @@ class VRAE(BaseEstimator, nn.Module):
                            latent_length=latent_length)
 
         self.decoder = Decoder(sequence_length=sequence_length,
-                               batch_size=batch_size,
+                               batch_size = batch_size,
                                hidden_size=hidden_size,
                                hidden_layer_depth=hidden_layer_depth,
                                latent_length=latent_length,
@@ -294,7 +286,7 @@ class VRAE(BaseEstimator, nn.Module):
 
         return loss, recon_loss, kl_loss, x
 
-    def _train(self, train_loader):
+        def _train(self, train_loader):
             self.encoder.train()
             self.decoder.train()
 
