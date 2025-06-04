@@ -286,7 +286,7 @@ class VRAE(BaseEstimator, nn.Module):
 
         return loss, recon_loss, kl_loss, x
 
-        def _train(self, train_loader):
+    def _train(self, train_loader):
             self.encoder.train()
             self.decoder.train()
 
