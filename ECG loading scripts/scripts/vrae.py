@@ -325,8 +325,7 @@ class VRAE(BaseEstimator, nn.Module):
 
         print('Average loss: {:.4f}'.format(epoch_loss / t))
 
-
-    def fit(self, dataset, save = False):
+    def fit(self, dataset, save=False):
         """
         Calls `_train` function over a fixed number of epochs, specified by `n_epochs`
 
@@ -334,21 +333,29 @@ class VRAE(BaseEstimator, nn.Module):
         :param bool save: If true, dumps the trained model parameters as pickle file at `dload` directory
         :return:
         """
+        train_loader = DataLoader(
+            dataset=dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            drop_last=True
+        )
 
-        train_loader = DataLoader(dataset = dataset,
-                                  batch_size = self.batch_size,
-                                  shuffle = True,
-                                  drop_last=True)
+        # Initialize loss tracking
+        self.train_losses = []
 
         for i in range(self.n_epochs):
-            print('Epoch: %s' % i)
+            print(f"Epoch: {i + 1}/{self.n_epochs}")
 
-            self._train(train_loader)
+            epoch_loss = self._train(train_loader)  # Update _train() to return the loss
+            self.train_losses.append(epoch_loss)
+
+            if self.print_every and (i + 1) % self.print_every == 0:
+                print(f"  → Loss: {epoch_loss:.4f}")
 
         self.is_fitted = True
+
         if save:
             self.save('model.pth')
-
 
     def _batch_transform(self, x):
         """
