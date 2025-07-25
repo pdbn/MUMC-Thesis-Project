@@ -2,12 +2,8 @@ import numpy as np
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
-# from torch.autograd import Variable # Variable is deprecated, use torch.tensor directly
 import os
-from .base import BaseEstimator  # Keep if you're using your own base class
-
-
-# (Encoder, Lambda, Decoder classes remain unchanged as previously corrected)
+from .base import BaseEstimator
 
 class Encoder(nn.Module):
     def __init__(self, number_of_features, hidden_size, hidden_layer_depth, latent_length, dropout, block='LSTM'):
@@ -98,7 +94,7 @@ class VRAE(BaseEstimator, nn.Module):
     def __init__(self, sequence_length, number_of_features, hidden_size=90, hidden_layer_depth=2, latent_length=20,
                  batch_size=32, learning_rate=0.005, block='LSTM', n_epochs=5, dropout_rate=0.,
                  optimizer='Adam', loss='MSELoss', cuda=False, print_every=100, clip=True,
-                 max_grad_norm=5, dload='.', beta=1.0, kl_annealing_epochs=40, input_dropout_rate=0.25,
+                 max_grad_norm=5, dload='.', beta=1.0, kl_annealing_epochs=15, input_dropout_rate=0.25,
                  # New parameter for sigmoid annealing steepness
                  sigmoid_anneal_k=1.5, sigmoid_anneal_x0=0.9):
         super(VRAE, self).__init__()
