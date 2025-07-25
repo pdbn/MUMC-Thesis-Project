@@ -232,9 +232,9 @@ class VRAE(BaseEstimator, nn.Module):
             raise ValueError('Not a recognized optimizer')
 
         if loss == 'SmoothL1Loss':
-            self.loss_fn = nn.SmoothL1Loss(size_average=False)
+            self.loss_fn = nn.SmoothL1Loss(reduction='mean')
         elif loss == 'MSELoss':
-            self.loss_fn = nn.MSELoss(size_average=False)
+            self.loss_fn = nn.MSELoss(reduction='mean')
 
     def __repr__(self):
         return """VRAE(n_epochs={n_epochs},batch_size={batch_size},cuda={cuda})""".format(
@@ -286,57 +286,75 @@ class VRAE(BaseEstimator, nn.Module):
 
         return loss, recon_loss, kl_loss, x
 
+
     def _train(self, train_loader):
-            self.encoder.train()
-            self.decoder.train()
-
-            epoch_loss = 0.0
-
-            for x_batch, in train_loader:
-                x_batch = x_batch.to(self.device)
-
-                self.optimizer.zero_grad()
-
-                x_encoded = self.encoder(x_batch)
-                x_decoded = self.decoder(x_encoded)
-
-                loss = self.loss_function(x_decoded, x_batch)
-                loss.backward()
-
-                if self.clip:
-                    torch.nn.utils.clip_grad_norm_(self.parameters, self.max_grad_norm)
-
-                self.optimizer.step()
-                epoch_loss += loss.item()
-
-            average_loss = epoch_loss / len(train_loader)
-            return average_loss
-
-    def fit(self, train_dataset, val_dataset=None, save=False):
         """
-        Trains the model and tracks loss.
-        """
-        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True, drop_last=True)
-        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False,
-                                drop_last=False) if val_dataset else None
+        For each epoch, given the batch_size, run this function batch_size * num_of_batches number of times
 
+        :param train_loader:input train loader with shuffle
+        :return:
+        """
+        self.train()
+
+        epoch_loss = 0
+        t = 0
+
+        for t, X in enumerate(train_loader):
+
+            # Index first element of array to return tensor
+            X = X[0]
+
+            # required to swap axes, since dataloader gives output in (batch_size x seq_len x num_of_features)
+            X = X.permute(1,0,2)
+
+            self.optimizer.zero_grad()
+            loss, recon_loss, kl_loss, _ = self.compute_loss(X)
+            loss.backward()
+
+            if self.clip:
+                torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm = self.max_grad_norm)
+
+            # accumulator
+            epoch_loss += loss.item()
+
+            self.optimizer.step()
+
+            if (t + 1) % self.print_every == 0:
+                print('Batch %d, loss = %.4f, recon_loss = %.4f, kl_loss = %.4f' % (t + 1, loss.item(),
+                                                                                    recon_loss.item(), kl_loss.item()))
+
+        print('Average loss: {:.4f}'.format(epoch_loss / t))
+        return epoch_loss / (t + 1)
+
+    def fit(self, dataset, save=False):
+        """
+        Calls `_train` function over a fixed number of epochs, specified by `n_epochs`
+
+        :param dataset: `Dataset` object
+        :param bool save: If true, dumps the trained model parameters as pickle file at `dload` directory
+        :return:
+        """
+        train_loader = DataLoader(
+            dataset=dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            drop_last=True
+        )
+
+        # Initialize loss tracking
         self.train_losses = []
-        self.val_losses = []
 
-        for epoch in range(self.n_epochs):
-            print(f"Epoch: {epoch + 1}/{self.n_epochs}")
+        for i in range(self.n_epochs):
+            print(f"Epoch: {i + 1}/{self.n_epochs}")
 
-            train_loss = self._train(train_loader)
-            self.train_losses.append(train_loss)
+            epoch_loss = self._train(train_loader)  # Update _train() to return the loss
+            self.train_losses.append(epoch_loss)
 
-            if val_loader:
-                val_loss = self._evaluate(val_loader)
-                self.val_losses.append(val_loss)
-                print(f"  → Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
-            else:
-                print(f"  → Train Loss: {train_loss:.4f}")
+            if self.print_every and (i + 1) % self.print_every == 0:
+                print(f"  → Loss: {epoch_loss:.4f}")
 
         self.is_fitted = True
+
         if save:
             self.save('model.pth')
 
@@ -478,22 +496,3 @@ class VRAE(BaseEstimator, nn.Module):
         """
         self.is_fitted = True
         self.load_state_dict(torch.load(PATH))
-
-    # Add evaluate functions
-
-    def _evaluate(self, val_loader):
-        self.encoder.eval()
-        self.decoder.eval()
-        total_loss = 0.0
-
-        with torch.no_grad():
-            for x_batch, in val_loader:
-                x_batch = x_batch.to(self.device)
-
-                x_encoded = self.encoder(x_batch)
-                x_decoded = self.decoder(x_encoded)
-
-                loss = self.loss_function(x_decoded, x_batch)
-                total_loss += loss.item()
-
-        return total_loss / len(val_loader)
