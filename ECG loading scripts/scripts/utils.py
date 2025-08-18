@@ -119,3 +119,17 @@ def open_data(direc, ratio_train=0.8, dataset="ECG5000"):
     ind_cut = int(ratio_train * N)
     ind = np.random.permutation(N)
     return data[ind[:ind_cut], 1:, :], data[ind[ind_cut:], 1:, :], data[ind[:ind_cut], 0, :], data[ind[ind_cut:], 0, :]
+
+
+# Try a function to plot t-sne without true labels
+def plot_latent_space(z_run, engine='matplotlib'):
+    from sklearn.manifold import TSNE
+    import matplotlib.pyplot as plt
+
+    z_2d = TSNE(n_components=2).fit_transform(z_run)
+
+    plt.scatter(z_2d[:, 0], z_2d[:, 1], alpha=0.6)
+    plt.title('t-SNE projection of latent vectors')
+    plt.xlabel('Component 1')
+    plt.ylabel('Component 2')
+    plt.show()
