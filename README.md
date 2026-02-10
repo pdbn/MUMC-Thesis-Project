@@ -19,3 +19,7 @@ ECG loading scripts > scripts/
 - data_functions: Contains all functions to read and process relevant files, create relevant dataframes containing metadata and ECG signals  <br>
 - visualisation: Contains all functions for visualization purposes <br>
 - vrae: Contains all function for the main VRAE framework
+
+## My VRAE framework: 
+<img width="1800" height="562" alt="vrae" src="https://github.com/user-attachments/assets/07aec9bb-3136-40cf-9393-648367a2ecb3" />
+*illustrated by me*
