@@ -1,7 +1,7 @@
 # Master Thesis Project @ Maastricht UMC+ Hospital
 
 ## Details
-This thesis internship is finished under the supervision of Jip de Kok, Frank Rosmalen, and Prof. Stephan Smeekes as part of Msc E&OR curriculum. 
+This thesis internship is finished under the supervision of Jip de Kok, Frank Rosmalen, and Prof. Stephan Smeekes as part of Msc E&OR curriculum.  <br>
 🔗 [Public Version of Thesis](https://drive.google.com/file/d/1KujrOS4plZcCdR7IS9wSLKqaREbOy6aY/view?usp=sharing)
 
 ## Repository Structure
@@ -14,8 +14,8 @@ ECG loading scripts > scripts/
 ├── visualisation/
 ├── vrae
 ```
-ECGXMLReader: Contains all functions required to read ECG signals from XML files <br>
-ECG_preprocessing: Contains all functions required for preprocessing, including: augmenting leads, filters, sampling <br>
-data_functions: Contains all functions to read and process relevant files, create relevant dataframes containing metadata and ECG signals  <br>
-visualisation: Contains all functions for visualization purposes <br>
-vrae: Contains all function for the main VRAE framework
+- ECGXMLReader: Contains all functions required to read ECG signals from XML files <br>
+- ECG_preprocessing: Contains all functions required for preprocessing, including: augmenting leads, filters, sampling <br>
+- data_functions: Contains all functions to read and process relevant files, create relevant dataframes containing metadata and ECG signals  <br>
+- visualisation: Contains all functions for visualization purposes <br>
+- vrae: Contains all function for the main VRAE framework
