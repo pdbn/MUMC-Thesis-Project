@@ -22,4 +22,4 @@ ECG loading scripts > scripts/
 
 ## My VRAE framework: 
 <img width="1800" height="562" alt="vrae" src="https://github.com/user-attachments/assets/07aec9bb-3136-40cf-9393-648367a2ecb3" />
-*illustrated by me*
+_illustrated by me_
