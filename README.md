@@ -14,8 +14,8 @@ ECG loading scripts > scripts/
 ├── visualisation/
 ├── vrae
 ```
-ECGXMLReader: Contains all functions required to read ECG signals from XML files
-ECG_preprocessing: Contains all functions required for preprocessing, including: augmenting leads, filters, sampling
-data_functions: Contains all functions to read and process relevant files, create relevant dataframes containing metadata and ECG signals 
-visualisation: Contains all functions for visualization purposes
+ECGXMLReader: Contains all functions required to read ECG signals from XML files <br>
+ECG_preprocessing: Contains all functions required for preprocessing, including: augmenting leads, filters, sampling <br>
+data_functions: Contains all functions to read and process relevant files, create relevant dataframes containing metadata and ECG signals  <br>
+visualisation: Contains all functions for visualization purposes <br>
 vrae: Contains all function for the main VRAE framework
