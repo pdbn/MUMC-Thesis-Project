@@ -22,11 +22,12 @@ ECG loading scripts > scripts/
 
 ## My VRAE framework: 
 <img width="1800" height="562" alt="vrae" src="https://github.com/user-attachments/assets/07aec9bb-3136-40cf-9393-648367a2ecb3" />
-_illustrated by me_
+
+__illustrated by me_
 
 The VRAE architecture consists of 3 principal components: the encoder, the latent space, and the decoder.<br>
-Inpput: Sequential data<br>
-Output: Reconstructed sequential data
+**Input**: Sequential data<br>
+**Output**: Reconstructed sequential data
 
 - Encoder processes an input sequence through an RNN, where each cell receives the current input x_t and the previous hidden state h_{t-1}. The RNN cell, which can be either LSTM or GRU depending on the design choice, produces a sequence of hidden states, from which the final hidden state is extracted as a compact representation of the entire input sequence.
 - Latent space: The h_end is projected through two parallel fully connected layers to obtain the parameters of the approximate posterior distribution:  mean, standard deviation. T
